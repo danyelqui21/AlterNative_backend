@@ -1,101 +1,288 @@
-# LagunappBackend
+# LagunApp Backend
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+Backend microservices for the **LagunApp** platform — a Mexican entertainment & hospitality app.
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is ready ✨.
+Built with **NestJS** and managed as an **Nx monorepo**.
 
-[Learn more about this workspace setup and its capabilities](https://nx.dev/nx-api/nest?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
+## Tech Stack
 
-## Run tasks
+| Category | Technology |
+|----------|-----------|
+| Runtime | Node.js 20+ |
+| Framework | NestJS 11 |
+| Monorepo | Nx 22 |
+| Language | TypeScript 5.9 |
+| Databases | PostgreSQL 16, MongoDB 7 |
+| Cache | Redis 7 |
+| Queue | RabbitMQ 3 (via Bull) |
+| Auth | Passport + JWT, Google OAuth, Firebase Auth |
+| Payments | Stripe |
+| Docs | Swagger (OpenAPI) |
 
-To run the dev server for your app, use:
+## Architecture
 
-```sh
+```
+lagunapp-backend/
+├── apps/
+│   └── api-gateway/             # API Gateway (main entry point)
+├── admin-service/               # Admin management
+├── ai-chatbot-service/          # AI chatbot
+├── analytics-service/           # Analytics & tracking
+├── auth-service/                # Authentication service
+├── blog-service/                # Blog content
+├── chat-service/                # Real-time chat
+├── clans-service/               # ClanCity — clans, chat, event sharing
+├── coupons-service/             # Coupons & discounts
+├── events-service/              # Events management
+├── notifications-service/       # Push/email notifications
+├── restaurants-service/         # Restaurant management
+├── reviews-service/             # User reviews
+├── tickets-service/             # Ticketing & bookings
+├── tours-service/               # Tours management
+├── wallet-service/              # Wallet & payments
+├── scripts/                     # Seed script and utilities
+├── auth/                        # Shared auth library
+├── common/                      # Shared common library
+├── database/                    # Shared database library
+└── messaging/                   # Shared messaging library
+```
+
+Shared libraries are imported via path aliases: `@lagunapp-backend/common`, `@lagunapp-backend/database`, `@lagunapp-backend/auth`, `@lagunapp-backend/messaging`.
+
+## What is Nx and Why We Use It
+
+**Nx** is a monorepo build system. Think of it as a smart task runner that knows the relationships between all 15+ services in this repo.
+
+### The Problem It Solves
+
+Without Nx, you'd have 15 separate `package.json` scripts, 15 separate build commands, and no way to know which services depend on which. If you change the `auth` library, you'd have to manually remember that `auth-service`, `events-service`, `clans-service`, and `api-gateway` all need to be rebuilt.
+
+### How It Works for Us
+
+Every service and library has a `project.json` that tells Nx what it can do (build, serve, test, lint). Nx automatically detects dependencies by reading the TypeScript imports.
+
+```
+You run:  npx nx serve api-gateway
+
+Nx sees:  api-gateway imports from → auth-service, events-service, clans-service
+          auth-service imports from → auth (library), database (library)
+
+Nx does:  1. Build auth + database libraries
+          2. Build auth-service, events-service, clans-service (in parallel)
+          3. Build api-gateway
+          4. Start api-gateway with hot reload
+```
+
+**Key Nx commands:**
+
+| Command | What it does |
+|---------|-------------|
+| `npx nx serve api-gateway` | Build dependencies + start with hot reload |
+| `npx nx build api-gateway` | Build the gateway and all its dependencies |
+| `npx nx test events-service` | Run tests for events-service |
+| `npx nx run-many --target=build --all` | Build everything |
+| `npx nx run-many --target=lint --all` | Lint everything |
+| `npx nx graph` | Open a visual dependency graph in your browser |
+
+**Caching:** Nx caches build results. If you rebuild and nothing changed in `auth-service`, it skips it instantly — you'll see `[local cache]` in the output. This makes rebuilds much faster.
+
+**Shared libraries** (`auth/`, `common/`, `database/`, `messaging/`) are imported via path aliases like `@lagunapp-backend/auth`. These are configured in `tsconfig.base.json` and shared across all services.
+
+## Prerequisites
+
+- **Node.js** >= 20
+- **Docker & Docker Compose** (for PostgreSQL, MongoDB, Redis, RabbitMQ)
+- **Nx CLI** (optional): `npm install -g nx`
+
+## Getting Started
+
+### 1. Start the Databases
+
+The backend needs 4 infrastructure services running. They're managed via Docker Compose in the `lagunapp-infra` repo.
+
+```bash
+cd lagunapp-infra
+docker compose -f docker-compose.dev.yml up -d
+```
+
+This starts:
+
+| Service | Port | Purpose | Management UI |
+|---------|------|---------|---------------|
+| **PostgreSQL 16** | `5432` | Main relational database (users, events, clans, tickets) | — |
+| **MongoDB 7** | `27017` | Document database (chat messages, analytics, logs) | — |
+| **Redis 7** | `6379` | Cache, sessions, rate limiting | — |
+| **RabbitMQ 3** | `5672` | Message queue between microservices | http://localhost:15672 |
+
+**Default credentials** (development only):
+- **User:** `lagunapp`
+- **Password:** `lagunapp_dev_2026`
+- **PostgreSQL database:** `lagunapp_db`
+
+**Check status:**
+```bash
+docker compose -f docker-compose.dev.yml ps
+```
+
+**View logs:**
+```bash
+docker compose -f docker-compose.dev.yml logs -f postgres
+```
+
+**Stop services:**
+```bash
+docker compose -f docker-compose.dev.yml down       # Stop (data preserved)
+docker compose -f docker-compose.dev.yml down -v     # Stop AND delete all data
+```
+
+> **Important:** Data is persisted in Docker volumes. Stopping and restarting containers (`down` then `up`) keeps your data. Only `down -v` wipes it.
+
+> **Port conflicts:** If you have a local PostgreSQL or MongoDB installed (via Homebrew, etc.), they'll conflict with Docker on the same ports. Stop them first:
+> ```bash
+> brew services stop postgresql@14   # or whatever version
+> brew services stop mongodb-community
+> ```
+
+### 2. Configure Environment
+
+```bash
+cp .env.debug .env
+```
+
+Edit `.env` and fill in your Firebase, Stripe, and Google OAuth credentials. See `.env.example` for all required variables.
+
+| File | Purpose |
+|------|---------|
+| `.env.debug` | Development values (localhost, test keys) |
+| `.env.release` | Production values (env var references for CI/CD) |
+| `.env.example` | Template with placeholders |
+
+### 3. Install Dependencies
+
+```bash
+npm install
+```
+
+### 4. Seed the Database
+
+```bash
+npm run seed
+```
+
+Seeds the PostgreSQL database with:
+- **11 users** — 1 admin, 4 regular users, 2 organizers, 2 restaurant owners, 2 scanner staff
+- **8 events** — Across categories (conciertos, festivales, deportes, etc.) with ticket types (General, VIP, Early Bird)
+- **ClanCity config** — `enableEveryNUsers=100`, `maxClansPerUser=2`, `maxMembersPerClan=10`
+
+All seed users share the password **`LagunApp2026!`**. See `seed-users.txt` at the monorepo root for the full credentials list.
+
+Requires PostgreSQL running (step 1). Re-running clears and re-seeds all data.
+
+### 5. Start the Backend
+
+```bash
+# Start the API Gateway (recommended — this is the main entry point)
 npx nx serve api-gateway
 ```
 
-To create a production bundle:
+The API Gateway starts at **http://localhost:3000/api**.
 
-```sh
+Nx will automatically build all dependencies (auth-service, events-service, clans-service) before starting. First run takes ~30 seconds; subsequent runs use cache and take ~5 seconds.
+
+**Other run options:**
+```bash
+# Start a specific microservice standalone
+npx nx serve events-service
+
+# Start all services at once
+npx nx run-many --target=serve --all
+```
+
+### 6. Verify It Works
+
+```bash
+# Health check
+curl http://localhost:3000/api/health
+
+# Get all events
+curl http://localhost:3000/api/events
+
+# Login as a seed user
+curl -X POST http://localhost:3000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"carlos.mendoza@correo.mx","password":"LagunApp2026!"}'
+```
+
+## Building
+
+```bash
+# Build a single service
 npx nx build api-gateway
+
+# Production build
+npx nx build api-gateway --configuration=production
+
+# Build everything
+npx nx run-many --target=build --all
 ```
 
-To see all available targets to run for a project, run:
+## Testing
 
-```sh
-npx nx show project api-gateway
+```bash
+# Test a specific service
+npx nx test events-service
+
+# Run all tests
+npx nx run-many --target=test --all
+
+# E2E tests
+npx nx e2e events-service-e2e
 ```
 
-These targets are either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
+## Linting
 
-[More about running tasks in the docs &raquo;](https://nx.dev/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Add new projects
-
-While you could add new projects to your workspace manually, you might want to leverage [Nx plugins](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) and their [code generation](https://nx.dev/features/generate-code?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) feature.
-
-Use the plugin's generator to create new projects.
-
-To generate a new application, use:
-
-```sh
-npx nx g @nx/nest:app demo
+```bash
+npx nx lint events-service
+npx nx run-many --target=lint --all
 ```
 
-To generate a new library, use:
+## Environment Variables Reference
 
-```sh
-npx nx g @nx/node:lib mylib
-```
+| Variable | Description | Default (debug) |
+|----------|-------------|-----------------|
+| `NODE_ENV` | Environment | `development` |
+| `PORT` | API Gateway port | `3000` |
+| `POSTGRES_HOST` | PostgreSQL host | `localhost` |
+| `POSTGRES_PORT` | PostgreSQL port | `5432` |
+| `POSTGRES_USER` | PostgreSQL user | `lagunapp` |
+| `POSTGRES_PASSWORD` | PostgreSQL password | `lagunapp_dev_2026` |
+| `POSTGRES_DB` | PostgreSQL database | `lagunapp_db` |
+| `MONGO_URI` | MongoDB connection string | `mongodb://lagunapp:...@localhost:27017` |
+| `REDIS_HOST` | Redis host | `localhost` |
+| `REDIS_PORT` | Redis port | `6379` |
+| `REDIS_PASSWORD` | Redis password | `lagunapp_dev_2026` |
+| `RABBITMQ_URL` | RabbitMQ connection | `amqp://lagunapp:...@localhost:5672` |
+| `JWT_SECRET` | JWT signing secret | *(change me)* |
+| `FIREBASE_PROJECT_ID` | Firebase project | *(your value)* |
+| `STRIPE_SECRET_KEY` | Stripe secret key | *(your value)* |
+| `GOOGLE_CLIENT_ID` | Google OAuth client ID | *(your value)* |
 
-You can use `npx nx list` to get a list of installed plugins. Then, run `npx nx list <plugin-name>` to learn about more specific capabilities of a particular plugin. Alternatively, [install Nx Console](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) to browse plugins and generators in your IDE.
+## Code Conventions
 
-[Learn more about Nx plugins &raquo;](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) | [Browse the plugin registry &raquo;](https://nx.dev/plugin-registry?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+- **Formatting:** Prettier with single quotes
+- **Modules:** NestJS module pattern for all services
+- **Shared code:** Via `@lagunapp-backend/*` path aliases
+- **Service structure:** `src/app/app.module.ts`, `app.controller.ts`, `app.service.ts`
 
-## Set up CI!
+## Related Repositories
 
-### Step 1
+- **lagunapp-admin** — Admin dashboard (React + Vite)
+- **lagunapp_user** — User mobile app (Flutter)
+- **lagunapp_organizer** — Organizer mobile app (Flutter)
+- **lagunapp_restaurant** — Restaurant mobile app (Flutter)
+- **lagunapp_scanner** — Scanner mobile app (Flutter)
+- **lagunapp-infra** — Infrastructure (Docker Compose)
 
-To connect to Nx Cloud, run the following command:
+## License
 
-```sh
-npx nx connect
-```
-
-Connecting to Nx Cloud ensures a [fast and scalable CI](https://nx.dev/ci/intro/why-nx-cloud?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) pipeline. It includes features such as:
-
-- [Remote caching](https://nx.dev/ci/features/remote-cache?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task distribution across multiple machines](https://nx.dev/ci/features/distribute-task-execution?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Automated e2e test splitting](https://nx.dev/ci/features/split-e2e-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task flakiness detection and rerunning](https://nx.dev/ci/features/flaky-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-### Step 2
-
-Use the following command to configure a CI workflow for your workspace:
-
-```sh
-npx nx g ci-workflow
-```
-
-[Learn more about Nx on CI](https://nx.dev/ci/intro/ci-with-nx#ready-get-started-with-your-provider?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Install Nx Console
-
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
-
-[Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Useful links
-
-Learn more:
-
-- [Learn more about this workspace setup](https://nx.dev/nx-api/nest?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects)
-- [Learn about Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Releasing Packages with Nx release](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [What are Nx plugins?](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-And join the Nx community:
-- [Discord](https://go.nx.dev/community)
-- [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [Our Youtube channel](https://www.youtube.com/@nxdevtools)
-- [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+Private — All rights reserved.

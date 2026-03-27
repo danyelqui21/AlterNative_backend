@@ -38,7 +38,23 @@
       "options": {
         "targetName": "test"
       },
-      "exclude": ["apps/api-gateway-e2e/**/*"]
+      "exclude": [
+        "apps/api-gateway-e2e/**/*",
+        "auth-service-e2e/**/*",
+        "events-service-e2e/**/*",
+        "restaurants-service-e2e/**/*",
+        "tours-service-e2e/**/*",
+        "tickets-service-e2e/**/*",
+        "wallet-service-e2e/**/*",
+        "notifications-service-e2e/**/*",
+        "reviews-service-e2e/**/*",
+        "analytics-service-e2e/**/*",
+        "chat-service-e2e/**/*",
+        "ai-chatbot-service-e2e/**/*",
+        "blog-service-e2e/**/*",
+        "coupons-service-e2e/**/*",
+        "admin-service-e2e/**/*"
+      ]
     }
   ]
 }
