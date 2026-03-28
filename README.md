@@ -272,7 +272,42 @@ npx nx run-many --target=lint --all
 - **Formatting:** Prettier with single quotes
 - **Modules:** NestJS module pattern for all services
 - **Shared code:** Via `@lagunapp-backend/*` path aliases
-- **Service structure:** `src/app/app.module.ts`, `app.controller.ts`, `app.service.ts`
+- **Service structure:** Clean architecture (see below)
+
+## Architecture
+
+Each microservice follows a **clean architecture** pattern with clearly separated layers:
+
+```
+service/src/app/
+├── entities/           # TypeORM entities (database schema)
+├── dto/                # Request validation (class-validator)
+├── datasources/        # Abstract data access contracts
+├── repositories/       # Abstract + implementation (business rules)
+├── usecases/           # Single-responsibility business operations
+├── app.controller.ts   # HTTP layer (routes, guards, pipes)
+├── app.service.ts      # Legacy facade (being migrated to usecases)
+└── app.module.ts       # DI wiring (providers, imports, exports)
+```
+
+### Data Flow
+
+```
+Controller  -->  UseCase  -->  Repository  -->  Datasource
+(HTTP)          (business)     (rules)          (DB access)
+```
+
+1. **Controller** receives the HTTP request, validates input, and delegates to a UseCase.
+2. **UseCase** contains a single business operation (e.g., `CreateEventUseCase`). It orchestrates one or more Repositories.
+3. **Repository** enforces business rules and delegates raw data access to a Datasource.
+4. **Datasource** is the only layer that talks to the database (TypeORM, MongoDB driver, etc.).
+
+Dependencies point inward: outer layers depend on inner layers, never the reverse.
+
+### API Documentation
+
+- **Swagger (OpenAPI):** Available at [`/api/docs`](http://localhost:3000/api/docs) when the API Gateway is running.
+- **Postman collection:** `postman/LagunApp.postman_collection.json` -- importable collection with all endpoints, example bodies, and environment variables.
 
 ## Related Repositories
 

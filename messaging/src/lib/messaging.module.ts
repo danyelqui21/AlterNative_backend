@@ -1,8 +1,16 @@
-import { Module } from '@nestjs/common';
+import { Module, DynamicModule } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { MessagingService } from './messaging.service';
 
-@Module({
-  controllers: [],
-  providers: [],
-  exports: [],
-})
-export class MessagingModule {}
+@Module({})
+export class MessagingModule {
+  static forRoot(): DynamicModule {
+    return {
+      module: MessagingModule,
+      imports: [ConfigModule],
+      providers: [MessagingService],
+      exports: [MessagingService],
+      global: true,
+    };
+  }
+}

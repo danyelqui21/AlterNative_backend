@@ -9,9 +9,11 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { ClansGatewayService } from '../services/clans-gateway.service';
 import { JwtAuthGuard, CurrentUser } from '@lagunapp-backend/auth';
 
+@ApiTags('Clans / Clanes')
 @Controller('clans')
 export class ClansController {
   constructor(private readonly clansService: ClansGatewayService) {}

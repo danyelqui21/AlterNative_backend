@@ -1,0 +1,724 @@
+{
+	"info": {
+		"_postman_id": "lagunapp-collection-2026",
+		"name": "LagunApp API / API de LagunApp",
+		"description": "Complete API collection for the LagunApp entertainment platform.\nColeccion completa de la API para la plataforma de entretenimiento LagunApp.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{token}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000/api",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Auth / Autenticacion",
+			"item": [
+				{
+					"name": "Register / Registrar",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Maria Lopez\",\n  \"email\": \"maria.lopez@correo.mx\",\n  \"password\": \"MiContraseña2026!\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/register",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "register"]
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"description": "Register a new user account.\nRegistrar una nueva cuenta de usuario."
+					}
+				},
+				{
+					"name": "Login / Iniciar Sesion",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"carlos.mendoza@correo.mx\",\n  \"password\": \"LagunApp2026!\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "login"]
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"description": "Login with email and password. Returns JWT token.\nIniciar sesion con correo y contraseña. Retorna token JWT."
+					}
+				},
+				{
+					"name": "Profile (Me) / Perfil (Yo)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/auth/me",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "me"]
+						},
+						"description": "Get the authenticated user's profile.\nObtener el perfil del usuario autenticado."
+					}
+				},
+				{
+					"name": "Update Profile / Actualizar Perfil",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Carlos Mendoza Garcia\",\n  \"phone\": \"+52 614 123 4567\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/me",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "me"]
+						},
+						"description": "Update the authenticated user's profile.\nActualizar el perfil del usuario autenticado."
+					}
+				}
+			]
+		},
+		{
+			"name": "Events / Eventos",
+			"item": [
+				{
+					"name": "All Events / Todos los Eventos",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/events?page=1&limit=20",
+							"host": ["{{base_url}}"],
+							"path": ["events"],
+							"query": [
+								{ "key": "page", "value": "1" },
+								{ "key": "limit", "value": "20" },
+								{ "key": "category", "value": "conciertos", "disabled": true },
+								{ "key": "city", "value": "Chihuahua", "disabled": true },
+								{ "key": "dateFrom", "value": "2026-01-01", "disabled": true },
+								{ "key": "dateTo", "value": "2026-12-31", "disabled": true },
+								{ "key": "priceMin", "value": "0", "disabled": true },
+								{ "key": "priceMax", "value": "5000", "disabled": true },
+								{ "key": "isPlusEighteen", "value": "false", "disabled": true },
+								{ "key": "isFeatured", "value": "true", "disabled": true }
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"description": "List all active events with optional filters.\nListar todos los eventos activos con filtros opcionales."
+					}
+				},
+				{
+					"name": "Event by ID / Evento por ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/events/:id",
+							"host": ["{{base_url}}"],
+							"path": ["events", ":id"],
+							"variable": [
+								{ "key": "id", "value": "" }
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"description": "Get a single event by its ID.\nObtener un evento por su ID."
+					}
+				},
+				{
+					"name": "Featured Events / Eventos Destacados",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/events/featured",
+							"host": ["{{base_url}}"],
+							"path": ["events", "featured"]
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"description": "Get featured/highlighted events.\nObtener eventos destacados."
+					}
+				},
+				{
+					"name": "Today Events / Eventos de Hoy",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/events?filter=today",
+							"host": ["{{base_url}}"],
+							"path": ["events"],
+							"query": [
+								{ "key": "filter", "value": "today" }
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"description": "Get events happening today.\nObtener eventos que suceden hoy."
+					}
+				},
+				{
+					"name": "Week Events / Eventos de la Semana",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/events?filter=week",
+							"host": ["{{base_url}}"],
+							"path": ["events"],
+							"query": [
+								{ "key": "filter", "value": "week" }
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"description": "Get events happening this week.\nObtener eventos que suceden esta semana."
+					}
+				},
+				{
+					"name": "Create Event / Crear Evento",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Noche de Rock en el Desierto\",\n  \"description\": \"Un concierto epico bajo las estrellas del desierto chihuahuense.\",\n  \"category\": \"conciertos\",\n  \"date\": \"2026-07-15T20:00:00.000Z\",\n  \"endDate\": \"2026-07-16T02:00:00.000Z\",\n  \"city\": \"Chihuahua\",\n  \"venue\": \"Plaza Mayor\",\n  \"address\": \"Av. Independencia 1500, Centro\",\n  \"imageUrl\": \"https://example.com/images/rock-desierto.jpg\",\n  \"isPlusEighteen\": false,\n  \"isFeatured\": true,\n  \"ticketTypes\": [\n    {\n      \"name\": \"General\",\n      \"price\": 350,\n      \"quantity\": 500,\n      \"description\": \"Acceso general al evento\"\n    },\n    {\n      \"name\": \"VIP\",\n      \"price\": 800,\n      \"quantity\": 100,\n      \"description\": \"Acceso VIP con barra libre\"\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/events",
+							"host": ["{{base_url}}"],
+							"path": ["events"]
+						},
+						"description": "Create a new event (organizer only).\nCrear un nuevo evento (solo organizadores)."
+					}
+				},
+				{
+					"name": "Update Event / Actualizar Evento",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Noche de Rock en el Desierto - Edicion Especial\",\n  \"description\": \"Actualizado: ahora con artistas invitados sorpresa.\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/events/:id",
+							"host": ["{{base_url}}"],
+							"path": ["events", ":id"],
+							"variable": [
+								{ "key": "id", "value": "" }
+							]
+						},
+						"description": "Update an existing event (organizer only).\nActualizar un evento existente (solo organizadores)."
+					}
+				},
+				{
+					"name": "Cancel Event / Cancelar Evento",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/events/:id",
+							"host": ["{{base_url}}"],
+							"path": ["events", ":id"],
+							"variable": [
+								{ "key": "id", "value": "" }
+							]
+						},
+						"description": "Cancel (soft-delete) an event (organizer only).\nCancelar (borrado logico) un evento (solo organizadores)."
+					}
+				}
+			]
+		},
+		{
+			"name": "Restaurants / Restaurantes",
+			"item": [
+				{
+					"name": "All Restaurants / Todos los Restaurantes",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/restaurants?page=1&limit=20",
+							"host": ["{{base_url}}"],
+							"path": ["restaurants"],
+							"query": [
+								{ "key": "page", "value": "1" },
+								{ "key": "limit", "value": "20" }
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"description": "List all restaurants with optional filters.\nListar todos los restaurantes con filtros opcionales."
+					}
+				},
+				{
+					"name": "Restaurant by ID / Restaurante por ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/restaurants/:id",
+							"host": ["{{base_url}}"],
+							"path": ["restaurants", ":id"],
+							"variable": [
+								{ "key": "id", "value": "" }
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"description": "Get a single restaurant by its ID.\nObtener un restaurante por su ID."
+					}
+				}
+			]
+		},
+		{
+			"name": "Tours",
+			"item": [
+				{
+					"name": "All Tours / Todos los Tours",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/tours?page=1&limit=20",
+							"host": ["{{base_url}}"],
+							"path": ["tours"],
+							"query": [
+								{ "key": "page", "value": "1" },
+								{ "key": "limit", "value": "20" }
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"description": "List all tours with optional filters.\nListar todos los tours con filtros opcionales."
+					}
+				},
+				{
+					"name": "Tour by ID / Tour por ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/tours/:id",
+							"host": ["{{base_url}}"],
+							"path": ["tours", ":id"],
+							"variable": [
+								{ "key": "id", "value": "" }
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"description": "Get a single tour by its ID.\nObtener un tour por su ID."
+					}
+				}
+			]
+		},
+		{
+			"name": "Clans / Clanes",
+			"item": [
+				{
+					"name": "All Clans / Todos los Clanes",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/clans?page=1&limit=20",
+							"host": ["{{base_url}}"],
+							"path": ["clans"],
+							"query": [
+								{ "key": "page", "value": "1" },
+								{ "key": "limit", "value": "20" }
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"description": "List all clans with optional filters.\nListar todos los clanes con filtros opcionales."
+					}
+				},
+				{
+					"name": "My Clans / Mis Clanes",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/clans/my-clans",
+							"host": ["{{base_url}}"],
+							"path": ["clans", "my-clans"]
+						},
+						"description": "Get clans the authenticated user belongs to.\nObtener los clanes a los que pertenece el usuario autenticado."
+					}
+				},
+				{
+					"name": "Clan by ID / Clan por ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/clans/:id",
+							"host": ["{{base_url}}"],
+							"path": ["clans", ":id"],
+							"variable": [
+								{ "key": "id", "value": "" }
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"description": "Get a single clan by its ID.\nObtener un clan por su ID."
+					}
+				},
+				{
+					"name": "Create Clan / Crear Clan",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Rockeros del Norte\",\n  \"description\": \"Clan para amantes del rock en Chihuahua\",\n  \"interest\": \"musica\",\n  \"city\": \"Chihuahua\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/clans",
+							"host": ["{{base_url}}"],
+							"path": ["clans"]
+						},
+						"description": "Create a new clan (if permitted).\nCrear un nuevo clan (si tiene permiso)."
+					}
+				},
+				{
+					"name": "Join Clan / Unirse al Clan",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/clans/:id/join",
+							"host": ["{{base_url}}"],
+							"path": ["clans", ":id", "join"],
+							"variable": [
+								{ "key": "id", "value": "" }
+							]
+						},
+						"description": "Join an existing clan.\nUnirse a un clan existente."
+					}
+				},
+				{
+					"name": "Leave Clan / Salir del Clan",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/clans/:id/leave",
+							"host": ["{{base_url}}"],
+							"path": ["clans", ":id", "leave"],
+							"variable": [
+								{ "key": "id", "value": "" }
+							]
+						},
+						"description": "Leave a clan.\nSalir de un clan."
+					}
+				},
+				{
+					"name": "Clan Messages / Mensajes del Clan",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/clans/:id/messages?page=1",
+							"host": ["{{base_url}}"],
+							"path": ["clans", ":id", "messages"],
+							"query": [
+								{ "key": "page", "value": "1" }
+							],
+							"variable": [
+								{ "key": "id", "value": "" }
+							]
+						},
+						"description": "Get paginated messages for a clan.\nObtener mensajes paginados de un clan."
+					}
+				},
+				{
+					"name": "Send Message / Enviar Mensaje",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"content\": \"Hola a todos! Alguien va al concierto del sabado?\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/clans/:id/messages",
+							"host": ["{{base_url}}"],
+							"path": ["clans", ":id", "messages"],
+							"variable": [
+								{ "key": "id", "value": "" }
+							]
+						},
+						"description": "Send a message to a clan chat.\nEnviar un mensaje al chat del clan."
+					}
+				},
+				{
+					"name": "Share Event / Compartir Evento",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"eventId\": \"\",\n  \"clanIds\": [],\n  \"message\": \"Miren este evento, esta increible!\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/clans/share-event",
+							"host": ["{{base_url}}"],
+							"path": ["clans", "share-event"]
+						},
+						"description": "Share an event with one or more clans.\nCompartir un evento con uno o mas clanes."
+					}
+				},
+				{
+					"name": "Can Create / Puede Crear",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/clans/can-create",
+							"host": ["{{base_url}}"],
+							"path": ["clans", "can-create"]
+						},
+						"description": "Check if the authenticated user can create a clan.\nVerificar si el usuario autenticado puede crear un clan."
+					}
+				}
+			]
+		},
+		{
+			"name": "Artists / Artistas",
+			"item": [
+				{
+					"name": "All Artists / Todos los Artistas",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/artists?page=1&limit=20",
+							"host": ["{{base_url}}"],
+							"path": ["artists"],
+							"query": [
+								{ "key": "page", "value": "1" },
+								{ "key": "limit", "value": "20" }
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"description": "List all artists with optional filters.\nListar todos los artistas con filtros opcionales."
+					}
+				},
+				{
+					"name": "Artist by ID / Artista por ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/artists/:id",
+							"host": ["{{base_url}}"],
+							"path": ["artists", ":id"],
+							"variable": [
+								{ "key": "id", "value": "" }
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"description": "Get a single artist by ID.\nObtener un artista por su ID."
+					}
+				}
+			]
+		},
+		{
+			"name": "Reviews / Resenas",
+			"item": [
+				{
+					"name": "Event Reviews / Resenas del Evento",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/reviews/event/:eventId?page=1",
+							"host": ["{{base_url}}"],
+							"path": ["reviews", "event", ":eventId"],
+							"query": [
+								{ "key": "page", "value": "1" }
+							],
+							"variable": [
+								{ "key": "eventId", "value": "" }
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"description": "Get paginated reviews for an event.\nObtener resenas paginadas de un evento."
+					}
+				},
+				{
+					"name": "Add Review / Agregar Resena",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"eventId\": \"\",\n  \"rating\": 5,\n  \"comment\": \"Increible evento! La mejor noche de mi vida.\",\n  \"photos\": []\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/reviews",
+							"host": ["{{base_url}}"],
+							"path": ["reviews"]
+						},
+						"description": "Add a review for an event.\nAgregar una resena para un evento."
+					}
+				}
+			]
+		},
+		{
+			"name": "Config / Configuracion",
+			"item": [
+				{
+					"name": "All Config / Toda la Configuracion",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/config",
+							"host": ["{{base_url}}"],
+							"path": ["config"]
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"description": "Get all platform configuration values.\nObtener todos los valores de configuracion de la plataforma."
+					}
+				},
+				{
+					"name": "Modules / Modulos",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/config/modules",
+							"host": ["{{base_url}}"],
+							"path": ["config", "modules"]
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"description": "Get enabled/disabled module flags.\nObtener las banderas de modulos habilitados/deshabilitados."
+					}
+				},
+				{
+					"name": "Update Config / Actualizar Configuracion",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"value\": \"true\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/config/:key",
+							"host": ["{{base_url}}"],
+							"path": ["config", ":key"],
+							"variable": [
+								{ "key": "key", "value": "module.events" }
+							]
+						},
+						"description": "Update a platform configuration value (admin only).\nActualizar un valor de configuracion de la plataforma (solo admin)."
+					}
+				}
+			]
+		}
+	]
+}

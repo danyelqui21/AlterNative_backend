@@ -41,6 +41,9 @@ export class Tour {
   @Column({ type: 'timestamp', nullable: true })
   nextAvailableDate: Date;
 
+  @Column({ default: true })
+  isActive: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 

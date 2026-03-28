@@ -1,6 +1,8 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { RestaurantsGatewayService } from '../services/restaurants-gateway.service';
 
+@ApiTags('Restaurants / Restaurantes')
 @Controller('restaurants')
 export class RestaurantsController {
   constructor(private readonly service: RestaurantsGatewayService) {}

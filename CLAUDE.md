@@ -130,9 +130,36 @@ npx nx lint events-service
 npx nx run-many --target=lint --all
 ```
 
+## Data Rules
+
+- **NEVER hard-delete records.** Use `isActive = false` or `status = 'cancelled'`. The only exception is the seed script.
+- **PostgreSQL** for relational data (users, events, tickets, clans, payments, artist core).
+- **MongoDB** for flexible/high-write data (artist profiles, social links, reviews, comments, chat messages).
+- **API Gateway** merges data from both databases before returning to clients.
+- **RabbitMQ** for async events: when a record is soft-deleted in Postgres, publish a message so MongoDB consumers can deactivate related documents.
+- **Feature flags** in `platform_config` table control which modules are visible (`module.events`, `module.restaurants`, etc.).
+
+## Validation Rules
+
+- **ALL validation happens here on the backend.** Frontends and mobile apps do NOT validate business rules.
+- Dates, quantities, prices, availability, permissions — all checked server-side in UseCases or Repositories.
+- Frontends may show UI hints (e.g., "min 6 characters") but enforcement is always here.
+- DTOs validate request shape (class-validator), UseCases validate business logic.
+
 ## Code Conventions
 
 - Single quotes (Prettier)
 - NestJS module pattern for all services
 - Shared libraries via `@lagunapp-backend/*` path aliases
-- Each service follows: `src/app/app.module.ts`, `app.controller.ts`, `app.service.ts`
+- Each service follows clean architecture:
+
+```
+├── entities/           # TypeORM entities
+├── dto/                # Request validation
+├── datasources/        # Abstract data access contracts
+├── repositories/       # Abstract + implementation (business rules)
+├── usecases/           # Single-responsibility business operations
+├── app.controller.ts   # HTTP layer
+├── app.service.ts      # Legacy (being migrated to usecases)
+└── app.module.ts       # DI wiring
+```

@@ -598,6 +598,76 @@ async function seed() {
     console.log(`   ✓ ${t.title} (${t.type})`);
   }
 
+  // ── Seed Artists (Postgres core + MongoDB profiles) ──────────────────────────
+  console.log('🎤 Seeding local artists...');
+  await q(`DROP TABLE IF EXISTS artists`);
+  await q(`CREATE TABLE artists (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR NOT NULL, bio TEXT, city VARCHAR,
+    genres JSONB, "imageUrl" VARCHAR,
+    "spotifyArtistId" VARCHAR, "userId" UUID,
+    "isVerified" BOOLEAN DEFAULT false, "isActive" BOOLEAN DEFAULT true,
+    "createdAt" TIMESTAMP DEFAULT now(), "updatedAt" TIMESTAMP DEFAULT now()
+  )`);
+
+  const seedArtists = [
+    { name: 'Los Buitres de Culiacan Sinaloa', bio: 'Agrupacion norteña originaria de Sinaloa con fuerte presencia en La Laguna.', city: 'Torreón', genres: ['Regional Mexicano', 'Norteño', 'Corridos'], imageUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=400&fit=crop', spotifyArtistId: '0EFisYRi20PTABuIRkKxdP', isVerified: true, social: { instagram: 'https://instagram.com/losbuitresoficial' } },
+    { name: 'DJ Nopal', bio: 'DJ y productor de musica electronica de Torreon. Residente en Club Mirage.', city: 'Torreón', genres: ['Electronica', 'House', 'Techno'], imageUrl: 'https://images.unsplash.com/photo-1571266028243-d220c6a3483f?w=400&h=400&fit=crop', spotifyArtistId: '', isVerified: false, social: { instagram: 'https://instagram.com/djnopal', tiktok: 'https://tiktok.com/@djnopal' } },
+    { name: 'Marcela y Los Duendes', bio: 'Banda de rock alternativo lagunero. Ganadores del Festival Revueltas 2025.', city: 'Gómez Palacio', genres: ['Rock Alternativo', 'Indie'], imageUrl: 'https://images.unsplash.com/photo-1511192336575-5a79af67a629?w=400&h=400&fit=crop', spotifyArtistId: '', isVerified: true, social: { instagram: 'https://instagram.com/marcelaylosduendes', youtube: 'https://youtube.com/@marcelaylosduendes' } },
+    { name: 'Colectivo Mezcal Sound', bio: 'Proyecto musical que fusiona cumbia, hip-hop y sonidos prehispanicos.', city: 'Lerdo', genres: ['Cumbia', 'Hip-Hop', 'Fusion'], imageUrl: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&h=400&fit=crop', spotifyArtistId: '', isVerified: false, social: { instagram: 'https://instagram.com/mezcalsound', facebook: 'https://facebook.com/mezcalsound' } },
+    { name: 'Ana La Norteña', bio: 'Cantautora y comediante de Torreon. Viral en TikTok con mas de 500k seguidores.', city: 'Torreón', genres: ['Regional Mexicano', 'Pop', 'Comedia'], imageUrl: 'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?w=400&h=400&fit=crop', spotifyArtistId: '', isVerified: true, social: { instagram: 'https://instagram.com/analanortena', tiktok: 'https://tiktok.com/@analanortena' } },
+    { name: 'Duna Beats', bio: 'Productora y DJ de musica ambient y downtempo del desierto chihuahuense.', city: 'Torreón', genres: ['Ambient', 'Downtempo', 'Electronica'], imageUrl: 'https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=400&h=400&fit=crop', spotifyArtistId: '', isVerified: false, social: { instagram: 'https://instagram.com/dunabeats' } },
+  ];
+
+  // Also seed MongoDB artist profiles (social links, extended bio)
+  const mongoUri = process.env.MONGO_URI || 'mongodb://lagunapp:lagunapp_dev_2026@localhost:27018/lagunapp_db?authSource=admin';
+  let mongoSeeded = false;
+  try {
+    const mongoose = await import('mongoose');
+    const MongoClient = mongoose.default.mongo.MongoClient;
+    const mongo = new MongoClient(mongoUri);
+    await mongo.connect();
+    const db = mongo.db();
+    await db.collection('artist_profiles').deleteMany({});
+
+    for (const a of seedArtists) {
+      const [inserted] = await q(
+        `INSERT INTO artists (name, bio, city, genres, "imageUrl", "spotifyArtistId", "isVerified")
+         VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`,
+        [a.name, a.bio, a.city, JSON.stringify(a.genres), a.imageUrl,
+         a.spotifyArtistId || null, a.isVerified]
+      );
+
+      // Insert profile into MongoDB with social links
+      await db.collection('artist_profiles').insertOne({
+        artistId: inserted.id,
+        bio: a.bio,
+        socialLinks: a.social,
+        photos: [],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      console.log(`   ✓ ${a.name} (PG + Mongo)`);
+    }
+
+    await mongo.close();
+    mongoSeeded = true;
+  } catch (err: any) {
+    console.log(`   ⚠ MongoDB seed failed: ${err.message}`);
+    // Still seed Postgres only
+    for (const a of seedArtists) {
+      await q(
+        `INSERT INTO artists (name, bio, city, genres, "imageUrl", "spotifyArtistId", "isVerified")
+         VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+        [a.name, a.bio, a.city, JSON.stringify(a.genres), a.imageUrl,
+         a.spotifyArtistId || null, a.isVerified]
+      );
+      console.log(`   ✓ ${a.name} (PG only)`);
+    }
+  }
+
   // ── Seed ClanCity Config ────────────────────────────────────────────────────
   console.log('🏰 Seeding ClanCity config...');
   try {
@@ -616,12 +686,47 @@ async function seed() {
     console.log('   ⚠ ClanCity tables not yet created — skipping');
   }
 
+  // ── Seed Platform Config (Feature Flags) ────────────────────────────────────
+  console.log('⚙️  Seeding platform config...');
+  await q(`CREATE TABLE IF NOT EXISTS platform_config (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    key VARCHAR UNIQUE NOT NULL, value VARCHAR NOT NULL,
+    description VARCHAR, "updatedAt" TIMESTAMP DEFAULT now()
+  )`);
+  await q(`DELETE FROM platform_config`);
+
+  const moduleConfigs = [
+    ['module.events',       'true',  'Eventos — descubre y compra boletos'],
+    ['module.restaurants',  'false', 'Restaurantes — explora y reserva'],
+    ['module.tours',        'false', 'Tours y experiencias'],
+    ['module.clans',        'false', 'ClanCity — clanes de interes'],
+    ['module.artists',      'false', 'Artistas locales con Spotify'],
+    ['module.blog',         'false', 'Blog y articulos'],
+    ['module.wallet',       'false', 'Wallet y pagos digitales'],
+    ['module.chat',         'false', 'Chat en tiempo real'],
+    ['module.notifications','false', 'Notificaciones push'],
+    ['module.hotels',       'false', 'Hoteles y hospedaje'],
+    ['module.tickets',      'true',  'Mis boletos y QR'],
+    ['app.name',            'LagunApp', 'Nombre de la plataforma'],
+    ['app.city',            'Torreón',  'Ciudad principal'],
+    ['app.region',          'La Laguna','Region'],
+  ];
+
+  for (const [key, value, desc] of moduleConfigs) {
+    await q(`INSERT INTO platform_config (key, value, description) VALUES ($1,$2,$3)`, [key, value, desc]);
+    if (key.startsWith('module.')) {
+      const mod = key.replace('module.', '');
+      console.log(`   ${value === 'true' ? '✅' : '⬜'} ${mod}`);
+    }
+  }
+
   // ── Summary ─────────────────────────────────────────────────────────────────
   const [{ count: totalUsers }] = await q(`SELECT COUNT(*) as count FROM users`);
   const [{ count: totalEvents }] = await q(`SELECT COUNT(*) as count FROM events`);
   const [{ count: totalTT }] = await q(`SELECT COUNT(*) as count FROM ticket_types`);
   const [{ count: totalRestaurants }] = await q(`SELECT COUNT(*) as count FROM restaurants`);
   const [{ count: totalTours }] = await q(`SELECT COUNT(*) as count FROM tours`);
+  const [{ count: totalArtists }] = await q(`SELECT COUNT(*) as count FROM artists`);
 
   console.log('\n✅ Seed complete!');
   console.log(`   Users:        ${totalUsers}`);
@@ -629,6 +734,7 @@ async function seed() {
   console.log(`   Ticket Types: ${totalTT}`);
   console.log(`   Restaurants:  ${totalRestaurants}`);
   console.log(`   Tours:        ${totalTours}`);
+  console.log(`   Artists:      ${totalArtists}`);
   console.log(`\n   Password for all users: ${SEED_PASSWORD}`);
 
   await AppDataSource.destroy();

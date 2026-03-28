@@ -9,9 +9,11 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { EventsGatewayService } from '../services/events-gateway.service';
 import { JwtAuthGuard, CurrentUser } from '@lagunapp-backend/auth';
 
+@ApiTags('Events / Eventos')
 @Controller('events')
 export class EventsController {
   constructor(private readonly eventsService: EventsGatewayService) {}

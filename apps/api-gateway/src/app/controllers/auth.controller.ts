@@ -6,9 +6,11 @@ import {
   Body,
   UseGuards,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { AuthGatewayService } from '../services/auth-gateway.service';
 import { JwtAuthGuard, CurrentUser } from '@lagunapp-backend/auth';
 
+@ApiTags('Auth / Autenticación')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthGatewayService) {}

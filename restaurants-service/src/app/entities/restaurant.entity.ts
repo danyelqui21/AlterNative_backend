@@ -59,6 +59,9 @@ export class Restaurant {
   @Column({ type: 'uuid', nullable: true })
   ownerId: string;
 
+  @Column({ default: true })
+  isActive: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 
