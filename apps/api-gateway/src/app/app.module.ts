@@ -25,6 +25,14 @@ import { Subscription } from './entities/subscription.entity';
 import { AdCampaign } from './entities/ad-campaign.entity';
 import { Wallet, WalletTransaction } from './entities/wallet.entity';
 import { Verification } from './entities/verification.entity';
+import { DeviceSession } from './entities/device-session.entity';
+import { PasswordReset } from './entities/password-reset.entity';
+import { StripeCustomer } from './entities/stripe-customer.entity';
+import { PaymentMethod } from './entities/payment-method.entity';
+import { Payment } from './entities/payment.entity';
+import { Notification } from './entities/notification.entity';
+import { UserNotification } from './entities/user-notification.entity';
+import { FcmToken } from './entities/fcm-token.entity';
 // MongoDB schemas
 import { ArtistProfile, ArtistProfileSchema } from './schemas/artist-profile.schema';
 import { EventReview, EventReviewSchema } from './schemas/event-review.schema';
@@ -55,6 +63,10 @@ import { AdminWalletsController } from './controllers/admin-wallets.controller';
 import { WalletController } from './controllers/wallet.controller';
 import { AdminVerificationsController } from './controllers/admin-verifications.controller';
 import { VerificationsController } from './controllers/verifications.controller';
+import { AdminNotificationsController } from './controllers/admin-notifications.controller';
+import { NotificationsController } from './controllers/notifications.controller';
+import { PaymentsController } from './controllers/payments.controller';
+import { AdminPaymentsController } from './controllers/admin-payments.controller';
 // Services
 import { AuthGatewayService } from './services/auth-gateway.service';
 import { EventsGatewayService } from './services/events-gateway.service';
@@ -77,6 +89,13 @@ import { SubscriptionsGatewayService } from './services/subscriptions-gateway.se
 import { AdsGatewayService } from './services/ads-gateway.service';
 import { WalletsGatewayService } from './services/wallets-gateway.service';
 import { VerificationsGatewayService } from './services/verifications-gateway.service';
+import { NotificationsGatewayService } from './services/notifications-gateway.service';
+import { FirebasePushService } from './services/firebase-push.service';
+import { TokenBlacklistService } from './services/token-blacklist.service';
+import { EmailService } from './services/email.service';
+import { IpGeolocationService } from './services/ip-geolocation.service';
+import { StripeService } from './services/stripe.service';
+import { PaymentsGatewayService } from './services/payments-gateway.service';
 
 @Module({
   imports: [
@@ -94,6 +113,9 @@ import { VerificationsGatewayService } from './services/verifications-gateway.se
       Ticket, Subscription, AdCampaign,
       Wallet, WalletTransaction,
       Verification,
+      DeviceSession, PasswordReset,
+      Notification, UserNotification, FcmToken,
+      StripeCustomer, PaymentMethod, Payment,
     ]),
     // MongoDB
     MongooseModule.forFeature([
@@ -114,6 +136,8 @@ import { VerificationsGatewayService } from './services/verifications-gateway.se
     AdminAdsController,
     AdminWalletsController, WalletController,
     AdminVerificationsController, VerificationsController,
+    AdminNotificationsController, NotificationsController,
+    PaymentsController, AdminPaymentsController,
   ],
   providers: [
     AuthGatewayService, EventsGatewayService,
@@ -127,6 +151,11 @@ import { VerificationsGatewayService } from './services/verifications-gateway.se
     TicketsGatewayService, SubscriptionsGatewayService,
     AdsGatewayService, WalletsGatewayService,
     VerificationsGatewayService,
+    NotificationsGatewayService, FirebasePushService,
+    TokenBlacklistService,
+    EmailService,
+    IpGeolocationService,
+    StripeService, PaymentsGatewayService,
   ],
 })
 export class AppModule {}

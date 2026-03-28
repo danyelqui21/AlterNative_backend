@@ -37,6 +37,18 @@ export class User {
   name: string;
 
   @Column({ nullable: true })
+  lastName: string;
+
+  @Column({ nullable: true, unique: true })
+  username: string;
+
+  @Column({ type: 'date', nullable: true })
+  birthDate: Date;
+
+  @Column({ nullable: true })
+  phoneCountryCode: string;
+
+  @Column({ nullable: true })
   phone: string;
 
   @Column({ nullable: true })
@@ -61,6 +73,9 @@ export class User {
   canCreateClans: boolean;
 
   @Column({ default: false })
+
+  @Column({ default: false })
+  hasCompletedOnboarding: boolean;
   isVerified: boolean;
 
   @Column({ default: true })

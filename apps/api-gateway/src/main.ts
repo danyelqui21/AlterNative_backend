@@ -7,13 +7,20 @@ import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app/app.module';
+import { TokenBlacklistGuard } from './app/guards/token-blacklist.guard';
+import { TokenBlacklistService } from './app/services/token-blacklist.service';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { rawBody: true });
   app.enableCors({
     origin: true,
     credentials: true,
   });
+
+  // Global guard: check token blacklist on every request
+  const blacklistService = app.get(TokenBlacklistService);
+  app.useGlobalGuards(new TokenBlacklistGuard(blacklistService));
+
   const globalPrefix = 'api';
   app.setGlobalPrefix(globalPrefix);
 

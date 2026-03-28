@@ -136,7 +136,7 @@ npx nx run-many --target=lint --all
 - **PostgreSQL** for relational data (users, events, tickets, clans, payments, artist core).
 - **MongoDB** for flexible/high-write data (artist profiles, social links, reviews, comments, chat messages).
 - **API Gateway** merges data from both databases before returning to clients.
-- **RabbitMQ** for async events: when a record is soft-deleted in Postgres, publish a message so MongoDB consumers can deactivate related documents.
+- **RabbitMQ** for async event-driven sync between PostgreSQL and MongoDB. See `messaging/src/lib/messaging.service.ts` for full documentation. Key events: `artist.disabled`, `event.cancelled`, `review.created`. Services publish via `messaging.publish()` and subscribe via `messaging.subscribe()`. Gracefully degrades to local dispatch if RabbitMQ is unavailable.
 - **Feature flags** in `platform_config` table control which modules are visible (`module.events`, `module.restaurants`, etc.).
 
 ## Validation Rules

@@ -23,6 +23,11 @@ export class AppService {
   ) {}
 
   async register(dto: RegisterDto) {
+    // Validate password match
+    if (dto.password !== dto.confirmPassword) {
+      throw new ConflictException('Las contrasenas no coinciden');
+    }
+
     const exists = await this.userRepo.findOne({
       where: { email: dto.email },
     });
@@ -30,11 +35,27 @@ export class AppService {
       throw new ConflictException('El correo ya esta registrado');
     }
 
+    // Check username uniqueness if provided
+    if (dto.username) {
+      const usernameExists = await this.userRepo.findOne({
+        where: { username: dto.username },
+      });
+      if (usernameExists) {
+        throw new ConflictException('El nombre de usuario ya esta en uso');
+      }
+    }
+
     const hashedPassword = await bcrypt.hash(dto.password, 10);
     const user = this.userRepo.create({
       name: dto.name,
+      lastName: dto.lastName,
       email: dto.email,
+      username: dto.username,
       password: hashedPassword,
+      phoneCountryCode: dto.phoneCountryCode,
+      phone: dto.phone,
+      birthDate: dto.birthDate ? new Date(dto.birthDate) : undefined,
+      avatarUrl: dto.avatarUrl,
     });
     const saved = await this.userRepo.save(user);
 
@@ -69,9 +90,12 @@ export class AppService {
   }
 
   async login(dto: LoginDto) {
-    const user = await this.userRepo.findOne({
-      where: { email: dto.email },
-    });
+    const user = await this.userRepo
+      .createQueryBuilder('user')
+      .where('user.email = :identifier OR user.username = :identifier', {
+        identifier: dto.emailOrUsername,
+      })
+      .getOne();
     if (!user || !user.password) {
       throw new UnauthorizedException('Credenciales invalidas');
     }
