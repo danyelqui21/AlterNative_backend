@@ -30,6 +30,11 @@ import { PasswordReset } from './entities/password-reset.entity';
 import { StripeCustomer } from './entities/stripe-customer.entity';
 import { PaymentMethod } from './entities/payment-method.entity';
 import { Payment } from './entities/payment.entity';
+import { Theater } from './entities/theater.entity';
+import { SeatingLayout } from './entities/seating-layout.entity';
+import { Seat } from './entities/seat.entity';
+import { TheaterEvent } from './entities/theater-event.entity';
+import { SeatReservation } from './entities/seat-reservation.entity';
 import { Notification } from './entities/notification.entity';
 import { UserNotification } from './entities/user-notification.entity';
 import { FcmToken } from './entities/fcm-token.entity';
@@ -67,6 +72,9 @@ import { AdminNotificationsController } from './controllers/admin-notifications.
 import { NotificationsController } from './controllers/notifications.controller';
 import { PaymentsController } from './controllers/payments.controller';
 import { AdminPaymentsController } from './controllers/admin-payments.controller';
+import { TheatersController } from './controllers/theaters.controller';
+import { AdminTheatersController } from './controllers/admin-theaters.controller';
+import { UploadsController } from './controllers/uploads.controller';
 // Services
 import { AuthGatewayService } from './services/auth-gateway.service';
 import { EventsGatewayService } from './services/events-gateway.service';
@@ -96,6 +104,10 @@ import { EmailService } from './services/email.service';
 import { IpGeolocationService } from './services/ip-geolocation.service';
 import { StripeService } from './services/stripe.service';
 import { PaymentsGatewayService } from './services/payments-gateway.service';
+import { TheatersGatewayService } from './services/theaters-gateway.service';
+import { SeatReservationService } from './services/seat-reservation.service';
+import { SeatsGateway } from './gateways/seats.gateway';
+import { UploadService } from './services/upload.service';
 
 @Module({
   imports: [
@@ -116,6 +128,7 @@ import { PaymentsGatewayService } from './services/payments-gateway.service';
       DeviceSession, PasswordReset,
       Notification, UserNotification, FcmToken,
       StripeCustomer, PaymentMethod, Payment,
+      Theater, SeatingLayout, Seat, TheaterEvent, SeatReservation,
     ]),
     // MongoDB
     MongooseModule.forFeature([
@@ -138,6 +151,8 @@ import { PaymentsGatewayService } from './services/payments-gateway.service';
     AdminVerificationsController, VerificationsController,
     AdminNotificationsController, NotificationsController,
     PaymentsController, AdminPaymentsController,
+    TheatersController, AdminTheatersController,
+    UploadsController,
   ],
   providers: [
     AuthGatewayService, EventsGatewayService,
@@ -156,6 +171,8 @@ import { PaymentsGatewayService } from './services/payments-gateway.service';
     EmailService,
     IpGeolocationService,
     StripeService, PaymentsGatewayService,
+    TheatersGatewayService, SeatReservationService, SeatsGateway,
+    UploadService,
   ],
 })
 export class AppModule {}

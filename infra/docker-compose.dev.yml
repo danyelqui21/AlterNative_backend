@@ -1,0 +1,46 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: lagunapp-postgres
+    ports:
+      - "54320:5432"
+    environment:
+      POSTGRES_USER: lagunapp
+      POSTGRES_PASSWORD: lagunapp_dev_2026
+      POSTGRES_DB: lagunapp_db
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+  mongo:
+    image: mongo:7
+    container_name: lagunapp-mongo
+    ports:
+      - "27018:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: lagunapp
+      MONGO_INITDB_ROOT_PASSWORD: lagunapp_dev_2026
+    volumes:
+      - mongo_data:/data/db
+
+  redis:
+    image: redis:7-alpine
+    container_name: lagunapp-redis
+    ports:
+      - "63790:6379"
+    command: redis-server --requirepass lagunapp_dev_2026
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: lagunapp-rabbitmq
+    ports:
+      - "56720:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: lagunapp
+      RABBITMQ_DEFAULT_PASS: lagunapp_dev_2026
+
+volumes:
+  pg_data:
+  mongo_data:

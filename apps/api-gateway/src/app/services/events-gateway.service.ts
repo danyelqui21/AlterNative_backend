@@ -10,6 +10,7 @@ import {
   EventStatus,
 } from '../../../../../events-service/src/app/entities/event.entity';
 import { TicketType } from '../../../../../events-service/src/app/entities/ticket-type.entity';
+import { TheaterEvent } from '../entities/theater-event.entity';
 
 @Injectable()
 export class EventsGatewayService {
@@ -17,7 +18,9 @@ export class EventsGatewayService {
     @InjectRepository(Event)
     private readonly eventRepo: Repository<Event>,
     @InjectRepository(TicketType)
-    private readonly ticketTypeRepo: Repository<TicketType>
+    private readonly ticketTypeRepo: Repository<TicketType>,
+    @InjectRepository(TheaterEvent)
+    private readonly theaterEventRepo: Repository<TheaterEvent>,
   ) {}
 
   async findAll(filters: {
@@ -91,7 +94,28 @@ export class EventsGatewayService {
     qb.orderBy('event.date', 'ASC').skip(skip).take(limit);
     const [events, total] = await qb.getManyAndCount();
 
-    return { data: events, meta: { total, page, limit } };
+    // Enrich with theater info (seatingMode) so clients know which events have seat selection
+    const eventIds = events.map((e) => e.id);
+    let theaterMap = new Map<string, { seatingMode: string; theaterId: string }>();
+    if (eventIds.length > 0) {
+      const theaterEvents = await this.theaterEventRepo
+        .createQueryBuilder('te')
+        .where('te.eventId IN (:...eventIds)', { eventIds })
+        .andWhere('te.isActive = true')
+        .getMany();
+      theaterMap = new Map(theaterEvents.map((te) => [te.eventId, { seatingMode: te.seatingMode, theaterId: te.theaterId }]));
+    }
+
+    const enriched = events.map((e) => {
+      const ti = theaterMap.get(e.id);
+      return {
+        ...e,
+        seatingMode: ti?.seatingMode ?? null,
+        theaterId: ti?.theaterId ?? null,
+      };
+    });
+
+    return { data: enriched, meta: { total, page, limit } };
   }
 
   async findOne(id: string) {
@@ -102,7 +126,17 @@ export class EventsGatewayService {
     if (!event) {
       throw new NotFoundException('Evento no encontrado');
     }
-    return event;
+
+    // Enrich with theater info
+    const te = await this.theaterEventRepo.findOne({
+      where: { eventId: id, isActive: true },
+    });
+
+    return {
+      ...event,
+      seatingMode: te?.seatingMode ?? null,
+      theaterId: te?.theaterId ?? null,
+    };
   }
 
   async findFeatured() {

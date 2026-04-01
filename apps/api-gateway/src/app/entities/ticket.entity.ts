@@ -38,6 +38,9 @@ export class Ticket {
   @Column({ nullable: true })
   qrCode: string;
 
+  @Column({ type: 'uuid', nullable: true })
+  seatId: string;
+
   @Column({ default: true })
   isActive: boolean;
 

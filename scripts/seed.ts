@@ -26,6 +26,8 @@ const UserRole = {
   RESTAURANT: 'restaurant',
   ORGANIZER: 'organizer',
   SCANNER_STAFF: 'scanner_staff',
+  THEATER_MANAGER: 'theater_manager',
+  THEATER_SUBMANAGER: 'theater_submanager',
   ADMIN: 'admin',
 } as const;
 
@@ -164,6 +166,29 @@ const seedUsers = [
     phone: '+52 871 890 1234',
     city: 'Gómez Palacio',
     role: UserRole.RESTAURANT,
+    provider: AuthProvider.LOCAL,
+    isVerified: true,
+    isActive: true,
+    interests: [],
+  },
+  // Theater managers
+  {
+    email: 'jorge.luna@correo.mx',
+    name: 'Jorge Luna',
+    phone: '+52 871 111 2233',
+    city: 'Torreón',
+    role: UserRole.THEATER_MANAGER,
+    provider: AuthProvider.LOCAL,
+    isVerified: true,
+    isActive: true,
+    interests: [],
+  },
+  {
+    email: 'laura.rios@correo.mx',
+    name: 'Laura Rios',
+    phone: '+52 871 222 3344',
+    city: 'Gómez Palacio',
+    role: UserRole.THEATER_MANAGER,
     provider: AuthProvider.LOCAL,
     isVerified: true,
     isActive: true,
@@ -668,6 +693,305 @@ async function seed() {
     }
   }
 
+  // ── Seed Theaters ──────────────────────────────────────────────────────────
+  console.log('🎭 Seeding theaters...');
+  await q(`CREATE TABLE IF NOT EXISTS theaters (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR NOT NULL, description TEXT, address VARCHAR, city VARCHAR,
+    "imageUrl" VARCHAR, phone VARCHAR, "managerId" UUID,
+    capacity INT DEFAULT 0, "isActive" BOOLEAN DEFAULT true,
+    "createdAt" TIMESTAMP DEFAULT now(), "updatedAt" TIMESTAMP DEFAULT now()
+  )`);
+  await q(`CREATE TABLE IF NOT EXISTS seating_layouts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "theaterId" UUID REFERENCES theaters(id), name VARCHAR NOT NULL,
+    description VARCHAR, "canvasWidth" INT DEFAULT 800, "canvasHeight" INT DEFAULT 600,
+    "backgroundUrl" VARCHAR, "isActive" BOOLEAN DEFAULT true,
+    "createdAt" TIMESTAMP DEFAULT now(), "updatedAt" TIMESTAMP DEFAULT now()
+  )`);
+  await q(`CREATE TABLE IF NOT EXISTS seats (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "layoutId" UUID REFERENCES seating_layouts(id), label VARCHAR NOT NULL,
+    "sectionName" VARCHAR, "rowName" VARCHAR, "seatNumber" INT,
+    "posX" FLOAT NOT NULL, "posY" FLOAT NOT NULL, angle FLOAT DEFAULT 0,
+    color VARCHAR DEFAULT '#D4663F', "backgroundColor" VARCHAR,
+    "seatType" VARCHAR DEFAULT 'standard', "isActive" BOOLEAN DEFAULT true,
+    "createdAt" TIMESTAMP DEFAULT now(), "updatedAt" TIMESTAMP DEFAULT now()
+  )`);
+  await q(`DELETE FROM seats`);
+  await q(`DELETE FROM seating_layouts`);
+  await q(`DELETE FROM theaters`);
+
+  const theaterManager1 = createdUsers['jorge.luna@correo.mx'];
+  const theaterManager2 = createdUsers['laura.rios@correo.mx'];
+
+  const seedTheaters = [
+    {
+      name: 'Teatro Nazas',
+      description: 'Teatro historico de Torreon con arquitectura art deco. Capacidad para 450 personas. Escenario principal para obras de teatro, conciertos acusticos y eventos culturales.',
+      address: 'Av. Morelos #1217, Centro',
+      city: 'Torreón',
+      phone: '+52 871 712 3456',
+      managerId: theaterManager1.id,
+      imageUrl: 'https://images.unsplash.com/photo-1503095396549-807759245b35?w=600&h=340&fit=crop',
+    },
+    {
+      name: 'Cinepolis Forum Torreon',
+      description: 'Complejo de cines con 12 salas incluyendo IMAX y VIP. Tecnologia Dolby Atmos, asientos reclinables premium y servicio de alimentos en sala.',
+      address: 'Blvd. Independencia #3000, Forum Torreon',
+      city: 'Torreón',
+      phone: '+52 871 750 0000',
+      managerId: theaterManager1.id,
+      imageUrl: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=600&h=340&fit=crop',
+    },
+    {
+      name: 'Teatro Isauro Martinez',
+      description: 'Emblemático teatro lagunero fundado en 1930. Patrimonio cultural con capacidad para 1,800 espectadores. Sede de la Orquesta Filarmonica de La Laguna.',
+      address: 'Av. Acuña #580, Centro',
+      city: 'Torreón',
+      phone: '+52 871 716 7890',
+      managerId: theaterManager1.id,
+      imageUrl: 'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?w=600&h=340&fit=crop',
+    },
+    {
+      name: 'Cinemex Galerias Laguna',
+      description: 'Cine moderno con 8 salas, platino y 4DX. Ubicado en el centro comercial Galerias Laguna con estacionamiento amplio.',
+      address: 'Periferico Raul Lopez Sanchez #1000, Galerias Laguna',
+      city: 'Torreón',
+      phone: '+52 871 729 0000',
+      managerId: theaterManager2.id,
+      imageUrl: 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=600&h=340&fit=crop',
+    },
+    {
+      name: 'Teatro de la Ciudad Gomez Palacio',
+      description: 'Teatro municipal con auditorio para 600 personas. Presenta obras de teatro, danza folclórica, conciertos y eventos institucionales.',
+      address: 'Av. Madero #450, Centro',
+      city: 'Gómez Palacio',
+      phone: '+52 871 714 5678',
+      managerId: theaterManager2.id,
+      imageUrl: 'https://images.unsplash.com/photo-1460881680858-30d872d5b530?w=600&h=340&fit=crop',
+    },
+  ];
+
+  const theaterIds: Record<string, string> = {};
+
+  for (const t of seedTheaters) {
+    const [saved] = await q(
+      `INSERT INTO theaters (name, description, address, city, phone, "managerId", "imageUrl")
+       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`,
+      [t.name, t.description, t.address, t.city, t.phone, t.managerId, t.imageUrl]
+    );
+    theaterIds[t.name] = saved.id;
+    console.log(`   ✓ ${t.name} (${t.city})`);
+  }
+
+  // Seed layouts and seats for Teatro Nazas (small theater with numbered seating)
+  console.log('💺 Seeding seating layouts...');
+  const [nazasLayout] = await q(
+    `INSERT INTO seating_layouts ("theaterId", name, description, "canvasWidth", "canvasHeight")
+     VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+    [theaterIds['Teatro Nazas'], 'Sala Principal', 'Sala con vista directa al escenario', 800, 600]
+  );
+
+  // Generate rows A-H, 12 seats per row (96 seats) with prices
+  const rows = 'ABCDEFGH'.split('');
+  const seatsPerRow = 12;
+  const startX = 130;
+  const startY = 120;
+  const spacingX = 45;
+  const spacingY = 50;
+  let seatCount = 0;
+
+  for (let r = 0; r < rows.length; r++) {
+    for (let s = 0; s < seatsPerRow; s++) {
+      const seatType = r >= 6 ? 'vip' : 'standard';
+      const color = seatType === 'vip' ? '#D4A843' : '#D4663F';
+      const price = seatType === 'vip' ? 450 : 250;
+      await q(
+        `INSERT INTO seats ("layoutId", label, "sectionName", "rowName", "seatNumber", "posX", "posY", angle, color, "seatType", price)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+        [nazasLayout.id, `${rows[r]}${s + 1}`, r >= 6 ? 'VIP' : 'Platea', rows[r], s + 1,
+         startX + s * spacingX, startY + r * spacingY, 0, color, seatType, price]
+      );
+      seatCount++;
+    }
+  }
+
+  // Update capacity
+  await q(`UPDATE theaters SET capacity = $1 WHERE id = $2`, [seatCount, theaterIds['Teatro Nazas']]);
+  console.log(`   ✓ Teatro Nazas: ${seatCount} seats (${rows.length} rows x ${seatsPerRow})`);
+
+  // Layout for Isauro Martinez (big theater)
+  const [isauroLayout] = await q(
+    `INSERT INTO seating_layouts ("theaterId", name, description, "canvasWidth", "canvasHeight")
+     VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+    [theaterIds['Teatro Isauro Martinez'], 'Auditorio Principal', 'Auditorio completo con balcon', 1000, 800]
+  );
+
+  // Generate rows A-O, 20 seats per row (300 seats)
+  const bigRows = 'ABCDEFGHIJKLMNO'.split('');
+  const bigSeatsPerRow = 20;
+  let bigSeatCount = 0;
+
+  for (let r = 0; r < bigRows.length; r++) {
+    for (let s = 0; s < bigSeatsPerRow; s++) {
+      const seatType = r >= 12 ? 'vip' : r >= 10 ? 'premium' : 'standard';
+      const color = seatType === 'vip' ? '#D4A843' : seatType === 'premium' ? '#2A9D8F' : '#D4663F';
+      const section = r >= 12 ? 'VIP' : r >= 10 ? 'Premium' : r >= 5 ? 'Platea Alta' : 'Platea Baja';
+      const price = seatType === 'vip' ? 800 : seatType === 'premium' ? 550 : 300;
+      await q(
+        `INSERT INTO seats ("layoutId", label, "sectionName", "rowName", "seatNumber", "posX", "posY", angle, color, "seatType", price)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+        [isauroLayout.id, `${bigRows[r]}${s + 1}`, section, bigRows[r], s + 1,
+         80 + s * 42, 100 + r * 42, 0, color, seatType, price]
+      );
+      bigSeatCount++;
+    }
+  }
+
+  await q(`UPDATE theaters SET capacity = $1 WHERE id = $2`, [bigSeatCount, theaterIds['Teatro Isauro Martinez']]);
+  console.log(`   ✓ Teatro Isauro Martinez: ${bigSeatCount} seats (${bigRows.length} rows x ${bigSeatsPerRow})`);
+
+  // ── Seed Theater Events ─────────────────────────────────────────────────────
+  console.log('🎬 Seeding theater events...');
+  await q(`CREATE TABLE IF NOT EXISTS theater_events (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "eventId" UUID UNIQUE NOT NULL, "theaterId" UUID NOT NULL,
+    "layoutId" UUID, "seatingMode" VARCHAR DEFAULT 'general',
+    "seatsSnapshot" JSONB, "isActive" BOOLEAN DEFAULT true,
+    "createdAt" TIMESTAMP DEFAULT now(), "updatedAt" TIMESTAMP DEFAULT now()
+  )`);
+  await q(`DELETE FROM theater_events`);
+
+  // Create theater-specific events
+  const organizer = createdUsers['roberto.sanchez@correo.mx'];
+  const theaterEvents = [
+    {
+      title: 'Hamlet — Teatro Nazas',
+      description: 'Adaptacion contemporanea de Hamlet por la compania Teatro del Desierto. Una noche de drama clasico con un toque lagunero. Incluye intermedio con vino y botanas.',
+      category: 'cultural',
+      daysFromNow: 5,
+      time: '20:00',
+      location: 'Teatro Nazas',
+      city: 'Torreón',
+      price: 250,
+      imageUrl: 'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?w=600&h=340&fit=crop',
+      capacity: 96,
+      theater: 'Teatro Nazas',
+      layoutId: nazasLayout.id,
+      seatingMode: 'numbered',
+    },
+    {
+      title: 'Orquesta Filarmonica de La Laguna',
+      description: 'Concierto de temporada con obras de Beethoven, Dvorak y Marquez. Dirigido por el maestro Carlos Miguel Prieto. No te pierdas la Danzon No. 2.',
+      category: 'cultural',
+      daysFromNow: 12,
+      time: '19:30',
+      location: 'Teatro Isauro Martinez',
+      city: 'Torreón',
+      price: 300,
+      imageUrl: 'https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=600&h=340&fit=crop',
+      capacity: 300,
+      theater: 'Teatro Isauro Martinez',
+      layoutId: isauroLayout.id,
+      seatingMode: 'numbered',
+    },
+    {
+      title: 'Stand-Up Comedy: Laguneros al Mic',
+      description: 'Los mejores comediantes de La Laguna en una noche de stand-up. Sin asiento asignado — llega temprano para el mejor lugar. Incluye 2 bebidas.',
+      category: 'vida_nocturna',
+      daysFromNow: 3,
+      time: '21:00',
+      location: 'Teatro Nazas',
+      city: 'Torreón',
+      price: 200,
+      imageUrl: 'https://images.unsplash.com/photo-1585699324551-f6c309eedeca?w=600&h=340&fit=crop',
+      capacity: 96,
+      theater: 'Teatro Nazas',
+      layoutId: null,
+      seatingMode: 'general',
+    },
+    {
+      title: 'Cascanueces — Ballet Folklorico',
+      description: 'El clasico Cascanueces con fusion de ballet folklorico mexicano. Vestuario regional, musica en vivo. Ideal para toda la familia.',
+      category: 'familiar',
+      daysFromNow: 20,
+      time: '18:00',
+      location: 'Teatro Isauro Martinez',
+      city: 'Torreón',
+      price: 350,
+      imageUrl: 'https://images.unsplash.com/photo-1518834107812-67b0b7c58434?w=600&h=340&fit=crop',
+      capacity: 300,
+      theater: 'Teatro Isauro Martinez',
+      layoutId: isauroLayout.id,
+      seatingMode: 'numbered',
+    },
+    {
+      title: 'Cine al Aire Libre: Coco',
+      description: 'Proyeccion especial de Coco en la explanada del Teatro de la Ciudad. Trae tu silla o cobija. Palomitas y aguas frescas incluidas.',
+      category: 'familiar',
+      daysFromNow: 7,
+      time: '20:30',
+      location: 'Teatro de la Ciudad Gomez Palacio',
+      city: 'Gómez Palacio',
+      price: 50,
+      imageUrl: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=600&h=340&fit=crop',
+      capacity: 200,
+      theater: 'Teatro de la Ciudad Gomez Palacio',
+      layoutId: null,
+      seatingMode: 'general',
+    },
+  ];
+
+  for (const te of theaterEvents) {
+    // Create the event first
+    const [savedEvent] = await q(
+      `INSERT INTO events (title, description, category, date, time, location, city,
+        price, "imageUrl", "isPlusEighteen", "isFeatured", "organizerId",
+        capacity, "ticketsSold", status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING id`,
+      [te.title, te.description, te.category, daysFromNow(te.daysFromNow),
+       te.time, te.location, te.city, te.price, te.imageUrl,
+       false, true, organizer.id,
+       te.capacity, 0, EventStatus.ACTIVE]
+    );
+
+    // Snapshot seats if numbered
+    let seatsSnapshot = null;
+    if (te.seatingMode === 'numbered' && te.layoutId) {
+      const seatRows = await q(
+        `SELECT id, label, "sectionName", "rowName", "seatNumber", "posX", "posY", angle, color, "seatType", price, "isActive"
+         FROM seats WHERE "layoutId" = $1 AND "isActive" = true`,
+        [te.layoutId]
+      );
+      seatsSnapshot = JSON.stringify(seatRows);
+    }
+
+    // Link to theater
+    await q(
+      `INSERT INTO theater_events ("eventId", "theaterId", "layoutId", "seatingMode", "seatsSnapshot")
+       VALUES ($1,$2,$3,$4,$5)`,
+      [savedEvent.id, theaterIds[te.theater], te.layoutId, te.seatingMode, seatsSnapshot]
+    );
+
+    // Add ticket types
+    if (te.seatingMode === 'numbered') {
+      await q(
+        `INSERT INTO ticket_types ("eventId", name, price, available, "maxQuantity")
+         VALUES ($1,'Platea',$2,true,$3), ($1,'VIP',$4,true,$5)`,
+        [savedEvent.id, te.price, Math.floor(te.capacity * 0.75), te.price * 1.8, Math.floor(te.capacity * 0.25)]
+      );
+    } else {
+      await q(
+        `INSERT INTO ticket_types ("eventId", name, price, available, "maxQuantity")
+         VALUES ($1,'General',$2,true,$3)`,
+        [savedEvent.id, te.price, te.capacity]
+      );
+    }
+
+    console.log(`   ✓ ${te.title} (${te.seatingMode} @ ${te.theater})`);
+  }
+
   // ── Seed ClanCity Config ────────────────────────────────────────────────────
   console.log('🏰 Seeding ClanCity config...');
   try {
@@ -700,6 +1024,7 @@ async function seed() {
     ['module.restaurants',  'false', 'Restaurantes — explora y reserva'],
     ['module.tours',        'false', 'Tours y experiencias'],
     ['module.clans',        'false', 'ClanCity — clanes de interes'],
+    ['module.theaters',     'true',  'Teatros y cines con asientos numerados'],
     ['module.artists',      'false', 'Artistas locales con Spotify'],
     ['module.blog',         'false', 'Blog y articulos'],
     ['module.wallet',       'false', 'Wallet y pagos digitales'],
@@ -727,6 +1052,9 @@ async function seed() {
   const [{ count: totalRestaurants }] = await q(`SELECT COUNT(*) as count FROM restaurants`);
   const [{ count: totalTours }] = await q(`SELECT COUNT(*) as count FROM tours`);
   const [{ count: totalArtists }] = await q(`SELECT COUNT(*) as count FROM artists`);
+  const [{ count: totalTheaters }] = await q(`SELECT COUNT(*) as count FROM theaters`);
+  const [{ count: totalSeats }] = await q(`SELECT COUNT(*) as count FROM seats`);
+  const [{ count: totalTheaterEvents }] = await q(`SELECT COUNT(*) as count FROM theater_events`);
 
   console.log('\n✅ Seed complete!');
   console.log(`   Users:        ${totalUsers}`);
@@ -735,6 +1063,9 @@ async function seed() {
   console.log(`   Restaurants:  ${totalRestaurants}`);
   console.log(`   Tours:        ${totalTours}`);
   console.log(`   Artists:      ${totalArtists}`);
+  console.log(`   Theaters:     ${totalTheaters}`);
+  console.log(`   Seats:        ${totalSeats}`);
+  console.log(`   Theater Evt:  ${totalTheaterEvents}`);
   console.log(`\n   Password for all users: ${SEED_PASSWORD}`);
 
   await AppDataSource.destroy();

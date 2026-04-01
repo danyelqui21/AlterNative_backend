@@ -11,6 +11,8 @@ export enum UserRole {
   RESTAURANT = 'restaurant',
   ORGANIZER = 'organizer',
   SCANNER_STAFF = 'scanner_staff',
+  THEATER_MANAGER = 'theater_manager',
+  THEATER_SUBMANAGER = 'theater_submanager',
   ADMIN = 'admin',
 }
 
@@ -73,9 +75,9 @@ export class User {
   canCreateClans: boolean;
 
   @Column({ default: false })
+  hasCompletedOnboarding: boolean;
 
   @Column({ default: false })
-  hasCompletedOnboarding: boolean;
   isVerified: boolean;
 
   @Column({ default: true })
