@@ -5,16 +5,20 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { randomUUID } from 'crypto';
 import { Ticket } from '../entities/ticket.entity';
+import { Payment } from '../entities/payment.entity';
+import { DEFAULT_CURRENCY, QR_CODE_PREFIX } from '../constants';
 import { Event } from '../../../../../events-service/src/app/entities/event.entity';
 import { TicketType } from '../../../../../events-service/src/app/entities/ticket-type.entity';
-import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class TicketsGatewayService {
   constructor(
     @InjectRepository(Ticket)
     private readonly ticketRepo: Repository<Ticket>,
+    @InjectRepository(Payment)
+    private readonly paymentRepo: Repository<Payment>,
     @InjectRepository(Event)
     private readonly eventRepo: Repository<Event>,
     @InjectRepository(TicketType)
@@ -172,7 +176,7 @@ export class TicketsGatewayService {
       price: ticketType.price,
       quantity,
       status: 'active',
-      qrCode: uuidv4(),
+      qrCode: `${QR_CODE_PREFIX}-${randomUUID().replace(/-/g, '').substring(0, 12).toUpperCase()}`,
     });
 
     const savedTicket = await this.ticketRepo.save(ticket);
@@ -181,5 +185,53 @@ export class TicketsGatewayService {
     await this.eventRepo.increment({ id: eventId }, 'ticketsSold', quantity);
 
     return savedTicket;
+  }
+
+  async buy(
+    userId: string,
+    dto: { eventId: string; ticketTypeId: string; quantity?: number },
+  ) {
+    const { eventId, ticketTypeId } = dto;
+    const quantity = dto.quantity || 1;
+
+    const event = await this.eventRepo.findOne({ where: { id: eventId } });
+    if (!event) throw new NotFoundException('Evento no encontrado');
+
+    const ticketType = await this.ticketTypeRepo.findOne({
+      where: { id: ticketTypeId },
+    });
+    if (!ticketType) throw new NotFoundException('Tipo de ticket no encontrado');
+
+    const totalAmount = Number(ticketType.price) * quantity;
+
+    // TODO: Replace with Stripe payment intent + webhook flow when payment processor is configured.
+    // Currently every purchase is auto-approved without charging a real card.
+    const payment = this.paymentRepo.create({
+      userId,
+      amount: totalAmount,
+      currency: DEFAULT_CURRENCY,
+      status: 'succeeded',
+      description: `${quantity}x ${ticketType.name} — ${event.title}`,
+      referenceType: 'ticket',
+      referenceId: ticketTypeId,
+    });
+    await this.paymentRepo.save(payment);
+
+    const ticket = this.ticketRepo.create({
+      userId,
+      eventId,
+      ticketTypeId,
+      eventTitle: event.title,
+      ticketTypeName: ticketType.name,
+      price: ticketType.price,
+      quantity,
+      status: 'active',
+      qrCode: `${QR_CODE_PREFIX}-${randomUUID().replace(/-/g, '').substring(0, 12).toUpperCase()}`,
+    });
+    await this.ticketRepo.save(ticket);
+
+    await this.eventRepo.increment({ id: eventId }, 'ticketsSold', quantity);
+
+    return { payment, ticket };
   }
 }

@@ -6,12 +6,16 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
+import { randomUUID } from 'crypto';
+import { DEFAULT_CURRENCY, QR_CODE_PREFIX } from '../constants';
 import { Theater } from '../entities/theater.entity';
 import { SeatingLayout } from '../entities/seating-layout.entity';
 import { Seat } from '../entities/seat.entity';
 import { TheaterEvent, SeatingMode } from '../entities/theater-event.entity';
 import { SeatReservation } from '../entities/seat-reservation.entity';
+import { Payment } from '../entities/payment.entity';
+import { Ticket } from '../entities/ticket.entity';
 import { Event } from '../../../../../events-service/src/app/entities/event.entity';
 import { SeatReservationService } from './seat-reservation.service';
 import { SeatsGateway } from '../gateways/seats.gateway';
@@ -29,6 +33,10 @@ export class TheatersGatewayService {
     private readonly theaterEventRepo: Repository<TheaterEvent>,
     @InjectRepository(SeatReservation)
     private readonly reservationRepo: Repository<SeatReservation>,
+    @InjectRepository(Payment)
+    private readonly paymentRepo: Repository<Payment>,
+    @InjectRepository(Ticket)
+    private readonly ticketRepo: Repository<Ticket>,
     @InjectRepository(Event)
     private readonly eventRepo: Repository<Event>,
     private readonly seatHoldService: SeatReservationService,
@@ -428,7 +436,7 @@ export class TheatersGatewayService {
     let activeSeats: Array<{
       id: string; label: string; sectionName?: string; rowName?: string;
       seatNumber?: number; posX: number; posY: number; angle: number;
-      color: string; backgroundColor?: string; seatType: string;
+      color: string; backgroundColor?: string; seatType: string; price?: number; isActive?: boolean;
     }>;
     let layoutData: { id: string; name: string; canvasWidth: number; canvasHeight: number; backgroundUrl?: string };
 
@@ -688,5 +696,91 @@ export class TheatersGatewayService {
     });
 
     return saved;
+  }
+
+  /**
+   * Buy numbered seats — auto-approved payment (no Stripe).
+   * Flow: verify Redis holds → create Payment → create Ticket → confirm seats in DB.
+   *
+   * TODO: Replace the auto-approval with a Stripe PaymentIntent flow when the payment
+   * processor is configured. The seat hold + verify steps remain the same; only the
+   * Payment creation and status need to change to 'pending' until the webhook fires.
+   */
+  async buySeats(
+    eventId: string,
+    seatIds: string[],
+    userId: string,
+  ): Promise<{ payment: Payment; ticket: Ticket; reservations: SeatReservation[] }> {
+    if (!seatIds || seatIds.length === 0) {
+      throw new BadRequestException('Debes seleccionar al menos un asiento');
+    }
+
+    // Step 4: verify holds still belong to this user
+    const verification = await this.verifySeatHoldsForPayment(eventId, seatIds, userId);
+    if (!verification.valid) {
+      throw new ConflictException({
+        message: 'Algunos asientos ya no están disponibles o el tiempo expiró',
+        expiredSeatIds: verification.expiredSeatIds,
+      });
+    }
+
+    const theaterEvent = await this.getTheaterEvent(eventId);
+    const event = await this.eventRepo.findOne({
+      where: { id: theaterEvent.eventId },
+    });
+    if (!event) throw new NotFoundException('Evento no encontrado');
+
+    // Compute total from seat prices (snapshot takes priority)
+    let totalAmount = 0;
+    if (theaterEvent.seatsSnapshot && theaterEvent.seatsSnapshot.length > 0) {
+      const snapshotMap = new Map<string, any>(
+        theaterEvent.seatsSnapshot.map((s: any) => [s.id, s]),
+      );
+      for (const seatId of seatIds) {
+        totalAmount += Number(snapshotMap.get(seatId)?.price ?? 0);
+      }
+    } else {
+      const seats = await this.seatRepo.find({ where: { id: In(seatIds) } });
+      for (const seat of seats) {
+        totalAmount += Number(seat.price ?? 0);
+      }
+    }
+
+    // TODO: Replace with Stripe payment intent + webhook flow when payment processor is configured.
+    // Currently every seat purchase is auto-approved without charging a real card.
+    const payment = this.paymentRepo.create({
+      userId,
+      amount: totalAmount,
+      currency: DEFAULT_CURRENCY,
+      status: 'succeeded',
+      description: `${seatIds.length} asiento(s) — ${event.title}`,
+      referenceType: 'theater_seat',
+      referenceId: theaterEvent.id,
+    });
+    await this.paymentRepo.save(payment);
+
+    // One ticket covers all selected seats; seatId left null for multi-seat purchases
+    const ticket = this.ticketRepo.create({
+      userId,
+      eventId: theaterEvent.eventId,
+      ticketTypeId: null,
+      eventTitle: event.title,
+      ticketTypeName: `${seatIds.length} Asiento${seatIds.length === 1 ? '' : 's'}`,
+      price: totalAmount,
+      quantity: seatIds.length,
+      status: 'active',
+      qrCode: `${QR_CODE_PREFIX}-${randomUUID().replace(/-/g, '').substring(0, 12).toUpperCase()}`,
+    });
+    await this.ticketRepo.save(ticket);
+
+    // Step 5: write permanent DB reservations + clear Redis holds
+    const reservations = await this.confirmSeatsAfterPayment(
+      eventId,
+      seatIds,
+      userId,
+      ticket.id,
+    );
+
+    return { payment, ticket, reservations };
   }
 }

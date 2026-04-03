@@ -17,8 +17,8 @@ export class Ticket {
   @Column('uuid')
   eventId: string;
 
-  @Column('uuid')
-  ticketTypeId: string;
+  @Column({ type: 'uuid', nullable: true })
+  ticketTypeId: string | null;
 
   @Column()
   eventTitle: string;

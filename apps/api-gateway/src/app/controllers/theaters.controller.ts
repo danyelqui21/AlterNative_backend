@@ -75,6 +75,16 @@ export class TheatersController {
     );
   }
 
+  @Post('events/:eventId/buy-seats')
+  @UseGuards(JwtAuthGuard)
+  buySeats(
+    @Param('eventId') eventId: string,
+    @Body() body: { seatIds: string[] },
+    @CurrentUser('sub') userId: string,
+  ) {
+    return this.service.buySeats(eventId, body.seatIds, userId);
+  }
+
   // Wildcard :id route LAST
   @Get(':id')
   findOne(@Param('id') id: string) {

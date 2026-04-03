@@ -19,6 +19,7 @@ import { Event } from '../../../../../events-service/src/app/entities/event.enti
 import { TicketType } from '../../../../../events-service/src/app/entities/ticket-type.entity';
 import { MessagingService } from '@lagunapp-backend/messaging';
 import { randomUUID } from 'crypto';
+import { QR_CODE_PREFIX } from '../constants';
 
 @Injectable()
 export class PaymentsGatewayService implements OnModuleInit {
@@ -87,7 +88,7 @@ export class PaymentsGatewayService implements OnModuleInit {
             price: amount,
             quantity: 1,
             status: 'active',
-            qrCode: `LGN-${randomUUID().replace(/-/g, '').substring(0, 12).toUpperCase()}`,
+            qrCode: `${QR_CODE_PREFIX}-${randomUUID().replace(/-/g, '').substring(0, 12).toUpperCase()}`,
           });
           await this.ticketRepo.save(ticket);
           this.logger.log(`Ticket created: ${ticket.id} for user ${userId}`);
